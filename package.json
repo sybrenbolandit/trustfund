@@ -1,5 +1,5 @@
 {
-  "name": "pet-shop",
+  "name": "trust-fund",
   "version": "1.0.0",
   "description": "",
   "main": "truffle.js",
@@ -13,8 +13,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@openzeppelin/test-helpers": "^0.5.4",
-    "chai": "^4.2.0",
-    "truffle": "^5.0.44"
+    "@openzeppelin/contracts": "^3.3.0",
+    "@openzeppelin/test-helpers": "^0.5.13",
+    "chai": "^4.3.4",
+    "truffle-assertions": "^0.9.2",
+    "truffle": "^5.4.9"
   }
 }
