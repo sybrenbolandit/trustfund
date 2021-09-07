@@ -1,5 +1,10 @@
-var TrustFund = artifacts.require("./TrustFund.sol");
+const TrustFundToken = artifacts.require("./TrustFundToken.sol");
+const TrustFund = artifacts.require("./TrustFund.sol");
 
-module.exports = function(deployer) {
-  deployer.deploy(TrustFund);
+module.exports = async function(deployer) {
+  // Deploy token contract
+  await deployer.deploy(TrustFundToken);
+
+  // Deploy trustfund contract
+  await deployer.deploy(TrustFund);
 };
