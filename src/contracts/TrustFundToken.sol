@@ -8,7 +8,7 @@ contract TrustFundToken is ERC20 {
 
     event MinterChanged(address indexed from, address to);
 
-    constructor() public payable ERC20("Trustfund token", "TFT") {
+    constructor() payable ERC20("Trustfund token", "TFT") {
         minter = msg.sender;
     }
 
