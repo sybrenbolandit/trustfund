@@ -8,20 +8,20 @@ contract TrustFundToken is ERC20 {
 
     event MinterChanged(address indexed from, address to);
 
-    constructor() public payable ERC20("Trustfund token", "TFT") {
+    constructor() payable ERC20("Trustfund token", "TFT") {
         minter = msg.sender;
     }
 
-    function transferMinterRole(address newMinter) public returns (bool) {
+    function transferMinterRole(address _newMinter) public returns (bool) {
         require(msg.sender == minter, 'Error, only minter can transfer minter role');
-        minter = newMinter;
+        minter = _newMinter;
 
-        emit MinterChanged(msg.sender, newMinter);
+        emit MinterChanged(msg.sender, _newMinter);
         return true;
     }
 
-    function mint(address account, uint256 amount) public {
+    function mint(address _account, uint256 _amount) public {
         require(msg.sender == minter, 'Error, sender is not a minter');
-        _mint(account, amount);
+        _mint(_account, _amount);
     }
 }
