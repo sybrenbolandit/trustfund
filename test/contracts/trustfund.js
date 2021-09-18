@@ -21,7 +21,7 @@ contract("TrustFund", function(accounts) {
 
   describe("Create a trust", function() {
     it("should not create a trust in the past", function() {
-      return TrustFund.new().then(async function(instance) {
+      return TrustFund.new(tokenInstance.address).then(async function(instance) {
         trustFundInstance = instance;
 
         return trustFundInstance.createTrust(
@@ -129,14 +129,13 @@ contract("TrustFund", function(accounts) {
         trustFundInstance = instance;
         tokenInstance.transferMinterRole(trustFundInstance.address);
         balanceTracker = await balance.tracker(beneficiary);
-        const secondsOfTrustRewards = 2;
 
         await trustFundInstance.createTrust(
             beneficiary,
-            (await time.latest()).add(time.duration.seconds(secondsOfTrustRewards)),
+            (await time.latest()).add(time.duration.seconds(2)),
             { value: weiToSend }
         );
-        await time.increase(time.duration.seconds(secondsOfTrustRewards));
+        await time.increase(time.duration.seconds(2));
 
         await trustFundInstance.releaseFunds({from: beneficiary});
 
@@ -144,7 +143,7 @@ contract("TrustFund", function(accounts) {
       }).then(async function(tokenBalance) {
         const apy = 10;
         const intrestPerSecond = weiToSend*apy/(100*365.25*24*60*60)
-        expect(tokenBalance).to.be.bignumber.equals(new BN(intrestPerSecond*secondsOfTrustRewards));
+        expect(tokenBalance).to.be.bignumber.equals(new BN(intrestPerSecond*2));
       });
     });
 
