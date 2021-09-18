@@ -14,7 +14,13 @@ contract TrustFund {
         uint256 releaseTime;
     }
 
+    TrustFundToken private token;
+    uint8 public apy = 10;
     mapping(address => FutureRelease[]) public trusts;
+
+    constructor(TrustFundToken _token) {
+        token = _token;
+    }
 
     function createTrust(address payable _beneficiary, uint256 _releaseTime) public payable {
         require(_releaseTime >= block.timestamp, 'Release time cannot be in the past');
@@ -31,8 +37,15 @@ contract TrustFund {
                 // Release principal
                 msg.sender.transfer(futureRelease.amount);
 
+                // Release TFT
+                uint256 interestPerYear = apy*futureRelease.amount/100;
+                uint256 interestPerSecond = interestPerYear/(365.25*24*60*60);
+                uint256 depositTime = block.timestamp - futureRelease.startTime;
+                uint256 interest = interestPerSecond * depositTime;
+                token.mint(msg.sender, interest);
+
                 // Emit event
-                emit TrustReleased(msg.sender, futureRelease.amount, 0, futureRelease.startTime, block.timestamp);
+                emit TrustReleased(msg.sender, futureRelease.amount, interest, futureRelease.startTime, block.timestamp);
 
                 // Reset trust
                 delete trusts[msg.sender][i];

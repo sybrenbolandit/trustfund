@@ -6,12 +6,18 @@ const truffleAssert = require("truffle-assertions");
 chai.use(require('chai-bn')(BN));
 
 const TrustFund = artifacts.require("./TrustFund.sol");
+const TrustFundToken = artifacts.require("./TrustFundToken.sol");
 
 contract("TrustFund", function(accounts) {
   let weiToSend = web3.utils.toWei('1', 'ether');
   let beneficiary = accounts[1];
+  let tokenInstance;
   let trustFundInstance;
   let balanceTracker;
+
+  beforeEach(async function () {
+    tokenInstance = await TrustFundToken.new();
+  });
 
   describe("Create a trust", function() {
     it("should not create a trust in the past", function() {
@@ -29,7 +35,7 @@ contract("TrustFund", function(accounts) {
     });
 
     it("should create a trust", function() {
-      return TrustFund.new().then(async function(instance) {
+      return TrustFund.new(tokenInstance.address).then(async function(instance) {
         trustFundInstance = instance;
 
         return trustFundInstance.createTrust(
@@ -53,15 +59,17 @@ contract("TrustFund", function(accounts) {
 
   describe("Release funds", function() {
     it("should only release trusts of the sender", function() {
-      return TrustFund.new().then(async function(instance) {
+      return TrustFund.new(tokenInstance.address).then(async function(instance) {
         trustFundInstance = instance;
+        tokenInstance.transferMinterRole(trustFundInstance.address);
         balanceTracker = await balance.tracker(beneficiary);
 
         await trustFundInstance.createTrust(
             accounts[3],
-            (await time.latest()).add(time.duration.seconds(0.01)),
+            (await time.latest()).add(time.duration.seconds(2)),
             { value: weiToSend }
         );
+        await time.increase(time.duration.seconds(2));
 
         trustFundInstance.releaseFunds({from: beneficiary});
         expect(await balanceTracker.delta()).to.be.bignumber.equal('0');
@@ -69,8 +77,9 @@ contract("TrustFund", function(accounts) {
     });
 
     it("should only release trusts after the release time", function() {
-      return TrustFund.new().then(async function(instance) {
+      return TrustFund.new(tokenInstance.address).then(async function(instance) {
         trustFundInstance = instance;
+        tokenInstance.transferMinterRole(trustFundInstance.address);
         balanceTracker = await balance.tracker(beneficiary);
 
         await trustFundInstance.createTrust(
@@ -85,15 +94,17 @@ contract("TrustFund", function(accounts) {
     });
 
     it("should release funds", function() {
-        return TrustFund.new().then(async function(instance) {
+        return TrustFund.new(tokenInstance.address).then(async function(instance) {
           trustFundInstance = instance;
+          tokenInstance.transferMinterRole(trustFundInstance.address);
           balanceTracker = await balance.tracker(beneficiary);
 
           await trustFundInstance.createTrust(
             beneficiary,
-              (await time.latest()).add(time.duration.seconds(0.01)),
+              (await time.latest()).add(time.duration.seconds(2)),
             { value: weiToSend }
           );
+          await time.increase(time.duration.seconds(2));
 
           return trustFundInstance.releaseFunds({from: beneficiary});
         }).then(async function(receipt) {
@@ -113,21 +124,47 @@ contract("TrustFund", function(accounts) {
         });
     });
 
-    it("should release all funds", function() {
-      return TrustFund.new().then(async function (instance) {
+    it("should pay interest in TFT", function() {
+      return TrustFund.new(tokenInstance.address).then(async function(instance) {
         trustFundInstance = instance;
+        tokenInstance.transferMinterRole(trustFundInstance.address);
+        balanceTracker = await balance.tracker(beneficiary);
+        const secondsOfTrustRewards = 2;
+
+        await trustFundInstance.createTrust(
+            beneficiary,
+            (await time.latest()).add(time.duration.seconds(secondsOfTrustRewards)),
+            { value: weiToSend }
+        );
+        await time.increase(time.duration.seconds(secondsOfTrustRewards));
+
+        await trustFundInstance.releaseFunds({from: beneficiary});
+
+        return tokenInstance.balanceOf(beneficiary);
+      }).then(async function(tokenBalance) {
+        const apy = 10;
+        const intrestPerSecond = weiToSend*apy/(100*365.25*24*60*60)
+        expect(tokenBalance).to.be.bignumber.equals(new BN(intrestPerSecond*secondsOfTrustRewards));
+      });
+    });
+
+    it("should release all funds", function() {
+      return TrustFund.new(tokenInstance.address).then(async function (instance) {
+        trustFundInstance = instance;
+        tokenInstance.transferMinterRole(trustFundInstance.address);
         balanceTracker = await balance.tracker(beneficiary);
 
         await trustFundInstance.createTrust(
             beneficiary,
-            (await time.latest()).add(time.duration.seconds(0.01)),
+            (await time.latest()).add(time.duration.seconds(2)),
             {value: weiToSend}
         );
         await trustFundInstance.createTrust(
             beneficiary,
-            (await time.latest()).add(time.duration.seconds(0.01)),
+            (await time.latest()).add(time.duration.seconds(4)),
             {value: weiToSend}
         );
+        await time.increase(time.duration.seconds(4));
 
         return trustFundInstance.releaseFunds({from: beneficiary});
       }).then(async function (result) {
